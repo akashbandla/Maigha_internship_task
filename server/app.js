@@ -25,7 +25,7 @@ app.post('/api/sum', (req, res) => {
 
     // Create PythonShell instance and run Python code
     PythonShell.runString(`
-        from sum_module import add_numbers
+        from python_module import add_numbers
         import sys
         result = add_numbers(int(sys.argv[1]), int(sys.argv[2]))
         print(result)
