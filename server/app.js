@@ -16,7 +16,7 @@ app.post('/api/sum', (req, res) => {
     const { num1, num2 } = req.body;
 
     // Path to the Python script
-    const scriptPath = path.join(__dirname, 'python_module.py');
+    const scriptPath = path.join(__dirname, 'python_module.py'); 
 
     // Execute the Python script with arguments
     execFile('python', [scriptPath, num1, num2], (error, stdout, stderr) => {
