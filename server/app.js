@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { execFile } = require('child_process');
+const { PythonShell } = require('python-shell');
 const path = require('path');
 
 const app = express();
@@ -15,19 +15,29 @@ app.use(bodyParser.json());
 app.post('/api/sum', (req, res) => {
     const { num1, num2 } = req.body;
 
-    // Path to the Python script
-    const scriptPath = path.join(__dirname, 'python_module.py'); 
+    // PythonShell options to run Python code dynamically
+    let options = {
+        mode: 'text',
+        pythonOptions: ['-c'], // Run Python code in a shell
+        scriptPath: path.join(__dirname, ''), // Path to the Python module
+        args: [num1, num2] // Arguments passed to the Python function
+    };
 
-    // Execute the Python script with arguments
-    execFile('python', [scriptPath, num1, num2], (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error executing Python script: ${stderr}`);
-            res.status(500).json({ error: 'Internal Server Error' });
+    // Create PythonShell instance and run Python code
+    PythonShell.runString(`
+        from sum_module import add_numbers
+        import sys
+        result = add_numbers(int(sys.argv[1]), int(sys.argv[2]))
+        print(result)
+    `, options, (err, results) => {
+        if (err) {
+            console.error('Error executing Python function:', err);
+            res.status(500).json({ error: 'Error processing data' });
             return;
         }
 
         // Send the result back to the client
-        res.json({ sum: parseInt(stdout.trim()) });
+        res.json({ sum: parseInt(results[0].trim()) });
     });
 });
 
