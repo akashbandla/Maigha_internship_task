@@ -1,37 +1,39 @@
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
-const { execFile } = require('child_process');
+const bodyParser = require('body-parser');
 const path = require('path');
 
-const app = express();
-const port = 3000;
+const PROTO_PATH = path.join(__dirname, 'sum.proto');
+const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+    keepCase: true,
+    longs: String,
+    enums: String,
+    defaults: true,
+    oneofs: true,
+});
+const sumProto = grpc.loadPackageDefinition(packageDefinition).SumService;
 
-// Enable CORS
+const client = new sumProto('localhost:50051', grpc.credentials.createInsecure());
+
+const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Define the endpoint
 app.post('/api/sum', (req, res) => {
     const { num1, num2 } = req.body;
 
-    // Path to the Python script
-    const scriptPath = path.join(__dirname, 'python_module.py'); 
-
-    // Execute the Python script with arguments
-    execFile('python', [scriptPath, num1, num2], (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error executing Python script: ${stderr}`);
-            res.status(500).json({ error: 'Internal Server Error' });
-            return;
+    client.AddNumbers({ num1, num2 }, (error, response) => {
+        if (!error) {
+            res.json({ sum: response.sum });
+        } else {
+            res.status(500).json({ error: 'Failed to communicate with gRPC server' });
         }
-
-        // Send the result back to the client
-        res.json({ sum: parseInt(stdout.trim()) });
     });
 });
 
-// Start the server
+const port = 3000;
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Node.js server is running on http://localhost:${port}`);
 });
